@@ -1,0 +1,109 @@
+import random
+
+num_signals = 4
+
+num_particles = 10
+
+iterations = 50
+
+min_green = 10
+max_green = 60
+
+w = 0.7
+c1 = 1.5
+c2 = 1.5
+
+
+traffic_density = [40, 70, 30, 80]
+
+
+def fitness(position):
+    total_waiting_time = 0
+
+    for i in range(num_signals):
+        waiting_time = traffic_density[i] * 60 / position[i]
+        total_waiting_time += waiting_time
+
+    return total_waiting_time
+
+
+particles = []
+
+for i in range(num_particles):
+
+    position = [
+        random.uniform(min_green, max_green)
+        for _ in range(num_signals)
+    ]
+
+    velocity = [
+        random.uniform(-5, 5)
+        for _ in range(num_signals)
+    ]
+
+    particles.append({
+        "position": position,
+        "velocity": velocity,
+        "pbest": position[:],
+        "pbest_fitness": fitness(position)
+    })
+
+
+gbest_particle = min(
+    particles,
+    key=lambda p: p["pbest_fitness"]
+)
+
+gbest = gbest_particle["pbest"][:]
+gbest_fitness = gbest_particle["pbest_fitness"]
+
+
+for iteration in range(iterations):
+
+    for particle in particles:
+
+        for i in range(num_signals):
+
+            r1 = random.random()
+            r2 = random.random()
+
+            particle["velocity"][i] = (
+                w * particle["velocity"][i]
+                + c1 * r1 *
+                (particle["pbest"][i] - particle["position"][i])
+                + c2 * r2 *
+                (gbest[i] - particle["position"][i])
+            )
+
+            particle["position"][i] += particle["velocity"][i]
+
+            particle["position"][i] = max(
+                min_green,
+                min(max_green, particle["position"][i])
+            )
+
+        current_fitness = fitness(particle["position"])
+
+        if current_fitness < particle["pbest_fitness"]:
+
+            particle["pbest"] = particle["position"][:]
+            particle["pbest_fitness"] = current_fitness
+
+        if current_fitness < gbest_fitness:
+
+            gbest = particle["position"][:]
+            gbest_fitness = current_fitness
+
+
+print("Optimal Traffic Signal Timings")
+
+for i in range(num_signals):
+    print(
+        "Signal", i + 1,
+        "Green Time:",
+        round(gbest[i], 2),
+        "seconds"
+    )
+
+print("\nMinimum Waiting Time:",
+      round(gbest_fitness, 2))
